@@ -1,0 +1,200 @@
+---
+title: "Time Series Forecasting of Atmospheric CO2 using Prophet"
+subtitle: "MTH6139 Time Series Coursework 1"
+author: "Branden D'Souza"
+date: "Spring term 2025"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    theme: spacelab
+    highlight: tango
+---
+
+```{r, echo=FALSE}
+# This code will display the QMUL logo at the top right of the page
+# Do not change this code
+htmltools::img(
+  src = knitr::image_uri("images/QMlogo.png"),
+  alt = "logo",
+  style = "position:absolute; top:0; right:0; padding:10px; width:20%;"
+)
+```
+# 1 Introduction
+
+Time series analysis studies data that changes over time.
+It is widely used in finance, economics and environmental science.
+
+In my project I analysed atmospheric carbon dioxide (CO2)
+levels using the built-in R dataset called `co2`.
+
+My goal is to explore patterns in the data such as trends
+and seasonal fluctuations and  use Meta's Prophet model
+to forecast future CO2 levels.
+
+## 1.1 About the Dataset
+
+The dataset `co2` contains monthly measurements of atmospheric
+carbon dioxide concentration in parts per million (ppm).
+
+The measurements were taken at the Mauna Loa Observatory in Hawaii.
+
+The dataset is commonly used in time series analysis because it
+shows both a long-term increasing trend and clear seasonal patterns.
+
+```{r}
+start(co2)
+end(co2)
+frequency(co2)
+```
+
+The data is recorded monthly making it suitable for
+time series forecasting as there is also lots of data making it make reliable.
+
+## 1.2 Setup
+
+```{r setup, message=FALSE, warning=FALSE}
+library(prophet)
+library(ggplot2)
+library(zoo)
+```
+
+## 1.3 Visualisation
+
+```{r}
+plot(co2,
+     main = "Atmospheric CO2 Concentration",
+     ylab = "CO2 (ppm)",
+     xlab = "Year")
+```
+
+The plot shows that atmospheric CO2 concentration increases over time and there is a repeating wave pattern across the series.Suggesting that the data contains both a long-term trend
+and yearly seasonality.
+
+
+
+## 1.4 Trend Analysis
+
+The graph shows a clear upward trend in atmospheric CO2 levels.
+The overall level rises steadily from around 316 ppm at the start
+of the sample to over 365 ppm near the end.
+
+Indicating that atmospheric CO2 concentration increased
+consistently over the period observed.
+
+A simple linear regression model is fitted
+using time as the explanatory variable to support this.
+
+```{r}
+time_index <- 1:length(co2)
+
+trend_model <- lm(as.numeric(co2) ~ time_index)
+
+summary(trend_model)
+```
+
+The regression output shows a positive coefficient for time,
+confirming that CO2 concentration increases over time.
+
+This supports the conclusion that the series has a strong
+positive long-term trend.
+
+
+## 1.5 Seasonality Analysis
+
+In addition to the long-term trend, the data also shows
+a repeating seasonal pattern. The graph displays regular fluctuations that repeat each year. These appear as a wave-like pattern throughout the time series. This seasonal variation may be related to natural processes, such as plant growth cycles and seasonal changes in carbon absorption. To visualise the seasonal pattern more clearly, the series is decomposed into trend, seasonal and random components.
+
+```{r}
+co2_decomp <- decompose(co2)
+
+plot(co2_decomp)
+```
+
+The decomposition separates the time series into three parts.
+
+- Trend: the long-term increase in CO2 levels
+- Seasonal: the repeating yearly fluctuations
+- Random: irregular variation not explained by the model
+
+The seasonal component confirms that the data contains
+a strong yearly cycle with the same fluctuations throughout the decades.
+
+## 1.6 Prophet Forecasting
+
+Prophet requires the data to be stored in a dataframe with
+two columns called `ds` and `y`.
+
+The `ds` column contains the dates and the `y` column contains
+the observed values.
+
+```{r}
+co2_data <- data.frame(
+  ds = as.Date(as.yearmon(time(co2))),
+  y = as.numeric(co2)
+)
+
+head(co2_data)
+```
+
+The Prophet model is then fitted to the CO2 data.
+
+```{r}
+co2_prophet_model <- prophet(co2_data)
+```
+
+To generate forecasts future monthly dates are created.
+The model is used to forecast 60 months ahead, which is 5 years.
+
+```{r}
+future_dates <- make_future_dataframe(
+  co2_prophet_model,
+  periods = 60,
+  freq = "month"
+)
+```
+
+Forecasts are then produced for the observed and future dates.
+
+```{r}
+co2_forecast <- predict(co2_prophet_model, future_dates)
+
+head(co2_forecast)
+```
+
+## 1.7 Forecast Plot
+
+```{r}
+plot(co2_prophet_model, co2_forecast)
+```
+
+The forecast suggests that CO2 levels will continue to rise
+in the future. Upward rising trend.
+
+The shaded region represents uncertainty around the predictions for the future.
+
+## 1.8 Results Discussion
+
+```{r}
+prophet_plot_components(co2_prophet_model, co2_forecast)
+```
+
+The components plot shows the long-term trend and the yearly
+seasonal pattern captured by the Prophet model.
+
+The trend component remains upward-sloping, with the uncertainty with the shading after 2000's, while the yearly
+component confirms the regular seasonal fluctuations in the data.
+
+## 1.9 Conclusion
+
+This project analysed the atmospheric CO2 time series using R
+and Meta's Prophet forecasting model.
+
+The data showed two main features: a strong upward trend and
+clear yearly seasonality.
+
+A linear regression model supported the presence of a positive
+trend, while decomposition confirmed the repeating seasonal pattern.
+
+The Prophet forecast suggests that CO2 levels are likely to
+continue increasing over the next five years.
